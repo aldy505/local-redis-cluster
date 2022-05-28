@@ -1,0 +1,84 @@
+services:
+  redis-cluster-init:
+    image: redis:6-alpine
+    command: redis-cli -h redis1 -a foobared --cluster create 172.20.0.31:6379 172.20.0.32:6379 172.20.0.33:6379 --cluster-replicas 0 --cluster-yes
+    depends_on:
+      redis1:
+        condition: service_healthy
+      redis2:
+        condition: service_healthy
+      redis3:
+        condition: service_healthy
+    networks:
+      app_subnet:
+        ipv4_address: 172.20.0.30
+
+  redis1:
+    image: redis:6-alpine
+    ports:
+      - 6379:6379
+    restart: unless-stopped
+    environment:
+      TZ: UTC
+      TZDATA: UTC
+    command: redis-server /home/redis/redis.conf --cluster-announce-ip 172.20.0.31
+    volumes:
+      - ./redis.conf:/home/redis/redis.conf
+    networks:
+      app_subnet:
+        ipv4_address: 172.20.0.31
+    healthcheck:
+      test: "redis-cli -a foobared ping | grep PONG"
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 10s
+
+  redis2:
+    image: redis:6-alpine
+    ports:
+      - 6380:6379
+    restart: unless-stopped
+    environment:
+      TZ: UTC
+      TZDATA: UTC
+    command: redis-server /home/redis/redis.conf --cluster-announce-ip 172.20.0.32
+    volumes:
+      - ./redis.conf:/home/redis/redis.conf
+    networks:
+      app_subnet:
+        ipv4_address: 172.20.0.32
+    healthcheck:
+      test: "redis-cli -a foobared ping | grep PONG"
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 10s
+
+  redis3:
+    image: redis:6-alpine
+    ports:
+      - 6381:6379
+    restart: unless-stopped
+    environment:
+      TZ: UTC
+      TZDATA: UTC
+    command: redis-server /home/redis/redis.conf --cluster-announce-ip 172.20.0.33
+    volumes:
+      - ./redis.conf:/home/redis/redis.conf
+    networks:
+      app_subnet:
+        ipv4_address: 172.20.0.33
+    healthcheck:
+      test: "redis-cli -a foobared ping | grep PONG"
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 10s
+
+networks:
+  app_subnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
